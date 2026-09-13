@@ -108,8 +108,7 @@ Edit the two placeholder lines in `run_water.slurm` using the course values
 announced by the instructor:
 
 ```text
-#SBATCH --account=COURSE_ACCOUNT
-#SBATCH --partition=COURSE_PARTITION
+#SBATCH --partition=sixhour
 ```
 
 Also replace `GROMACS_MODULE_NAME`, then submit:
