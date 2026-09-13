@@ -1,0 +1,15 @@
+#include "//home/ynan/tmp/methane/test_run/force_field/charmm36-jul2022.ff/forcefield.itp"
+#include "//home/ynan/tmp/methane/test_run/force_field/charmm36-jul2022.ff/tip3p_original.itp"
+
+; additional params for the molecule
+
+
+
+[ system ]
+; Name
+water
+
+[ molecules ]
+; Compound		  #mol
+
+SOL    2000

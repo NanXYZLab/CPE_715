@@ -1,0 +1,13 @@
+
+tolerance 2.0 
+output water_2000.pdb
+filetype  pdb
+
+
+structure water.pdb
+    number 2000
+    inside box -24. -24. -24.  24. 24. 24.
+end structure
+ 
+
+
