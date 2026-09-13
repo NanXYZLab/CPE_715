@@ -1,0 +1,21 @@
+# GROMACS generated files
+*.tpr
+*.trr
+*.xtc
+*.edr
+*.cpt
+*.log
+*.xvg
+mdout.mdp
+state.cpt
+state_prev.cpt
+water-*.out
+water-*.err
+#*#
+*.bak
+
+# Local/platform files
+.DS_Store
+.ipynb_checkpoints/
+packmol
+

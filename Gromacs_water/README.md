@@ -1,165 +1,153 @@
-# Pure Water Simulation Tutorial
+# Guided GROMACS Exercise: Pure Water
 
-This tutorial will guide you step by step to build and run a pure water system.
+In this exercise, you will run a small molecular-dynamics workflow on the KU
+Community Cluster. The starting water box and input templates are provided.
+You are not expected to build a force field from scratch.
 
-## Step 1. Install Required Software
+## Learning Goals
 
-You will need the following packages:
+By the end of the exercise, you should be able to:
 
-- **Packmol** → for initial configuration of the system  
-- **GROMACS** → for running molecular dynamics simulations  
-- **VMD** → for visualization of trajectories
+- identify coordinate, topology, parameter, and run-input files;
+- explain why energy minimization precedes molecular dynamics;
+- distinguish NVT, NPT, and production stages;
+- prepare a GROMACS run with `gmx grompp`;
+- submit and monitor a calculation with Slurm; and
+- inspect energy, temperature, pressure, and density outputs.
 
-## Step 2. Build the Water Box
+## Before Class
 
-Next, we will construct the water box using **Packmol**.
+Request KU Community Cluster access as described in
+[`HPC_Resources_Public`](../HPC_Resources_Public/README.md). Your instructor
+will announce the current login hostname, GROMACS module, course account, and
+partition.
 
-1. Make sure you have **Packmol** installed.  
-2. Prepare a **PDB file** of a single water molecule. In this tutorial, we will use `water.pdb`.  
-   - `water.pdb` is a coordinate file that contains:
-     - The **x, y, z coordinates** of each atom  
-     - Residue information  
-     - Atom names and connectivity (absent sometimes)  
+## Files Used
 
-3. (Optional) Open `water.pdb` to inspect it:
-   - Using a text editor (e.g., `vi water.pdb`) to view text file.  
-   - Using **VMD** (`vmd water.pdb`) to visualize the molecular structure.  
+| File | Purpose |
+|---|---|
+| `water_2000.pdb` | Provided coordinates for 2,000 water molecules |
+| `topol.top` | System topology and force-field includes |
+| `minim.mdp` | Energy-minimization settings |
+| `nvt.mdp` | Constant-volume temperature equilibration |
+| `npt.mdp` | Constant-pressure temperature equilibration |
+| `production.mdp` | Short production MD run |
+| `run_water.slurm` | Example Slurm workflow |
 
-4. Use Packmol to pack water molecules into a simulation box
+`water.pdb` and `test.inp` show how the initial configuration was constructed
+with Packmol. The prepared `water_2000.pdb` is supplied so Packmol is not
+required for the classroom exercise.
 
-   - Now we will use **Packmol** to pack the number of water molecules you want into a box.  
-   - An example Packmol input file is shown in the folder as `test.inp`. You will be able to modify this input yourself later.  
-   - For more advanced usage and to build fancier systems, see the Packmol tutorial: https://m3g.github.io/packmol/
+## 1. Log In and Copy the Course Repository
 
-   In this example, we place **2000 water molecules** inside a box with corners at  
-   `(-24, -24, -24)` and `(24, 24, 24)`.
+Follow the instructor's current cluster directions. After obtaining the course
+files, move into this directory:
 
-   To run the example with Packmol, simply use:
-
-   ```bash
-   packmol < test.inp
-   ```
-
-5. Check the Generated Water Box
-
-   After running Packmol, a new file will be created:
-
-   This file contains the coordinates of **2000 water molecules** packed inside the simulation box.
-
-   Check the file to make sure the system looks correct:
-
-   Open with a text editor to see the raw coordinates:
-   ```bash
-   vi water_2000.pdb
-   ```
-
-   Open with VMD to visualize the system:
-      ```bash
-   vmd water_2000.pdb
-      ```
-
-   This way, you can confirm that the molecules are properly placed inside the box.
-
-6. Converting PDB to GRO
-
-In GROMACS, coordinate files are often required in `.gro` format. If you start with a `.pdb` structure, you can convert it as follows:
-
-   ```bash
-   gmx editconf -f input.pdb -o output.gro
-   ```
-
-## Step 3. Run Molecular Dynamics (MD) Simulations
-
-Now that we have generated the initial structure with Packmol, we can set up and run molecular dynamics (MD) simulations in GROMACS. This stage typically consists of three main parts:
-
-1. **Energy Minimization (EM)**  
-   Relax unfavorable contacts in the initial structure to avoid unstable dynamics.  
-2. **Equilibration**  
-   Bring the system to the desired temperature and pressure in controlled steps.  
-3. **Production Run**  
-   Generate the actual trajectory for analysis.  
-
----
-
-### Input files needed for each step
-
-For every stage, GROMACS requires a **TPR file** (`.tpr`). This is a binary input file that cannot be read directly. To generate it, you need:
-
-- **`*.gro` file** – GROMACS coordinate file (similar to `.pdb`, but in GROMACS format).  
-- **`*.top` file** – topology file describing molecules, force field parameters, and system composition.  
-- **`*.mdp` file** – parameter (control) file specifying integration settings, thermostat/barostat choices, cutoffs, etc.  
-
-The `.tpr` file is generated using `gmx grompp`, and the simulation is run with `gmx mdrun`.
-
----
-
-### 3.1 Energy Minimization
-
-Minimization is necessary because Packmol structures often place atoms too close together, leading to extremely high forces and unstable dynamics.
-
-Preprocess and generate *.tpr file
+```bash
+cd CPE_715/Gromacs_water
 ```
+
+Load the GROMACS module announced in class and verify the command:
+
+```bash
+module avail gromacs
+module load GROMACS_MODULE_NAME
+gmx --version
+```
+
+Do not type the placeholder literally; replace `GROMACS_MODULE_NAME` with the
+module announced by the instructor.
+
+## 2. Prepare the Coordinate File
+
+The Packmol box is 48 angstrom on each side. Center it and set the GROMACS box
+dimensions (GROMACS uses nm):
+
+```bash
+gmx editconf -f water_2000.pdb -o conf.gro -c -box 4.8 4.8 4.8
+```
+
+Check the last line of `conf.gro`; it should contain the box dimensions.
+
+## 3. Run the Workflow Interactively for Learning
+
+Only run these commands during an instructor-approved interactive session or
+on a compute node—not as a substantial job on the login node.
+
+### Energy minimization
+
+```bash
 gmx grompp -f minim.mdp -c conf.gro -p topol.top -o em.tpr
-```
-Run minimization
-```
 gmx mdrun -deffnm em
 ```
-After minimization, check the potential energy:
-```
-gmx energy -f em.edr -o potential.xvg
-```
 
-Select Potential when prompted. The energy should decrease smoothly.
+### NVT equilibration
 
-### 3.2 NVT Equilibration (constant N, V, T)
-
-Equilibrate the system at the target temperature while keeping the volume fixed.
-
-```
+```bash
 gmx grompp -f nvt.mdp -c em.gro -p topol.top -o nvt.tpr
-```
-Run NVT equilibration
-```
 gmx mdrun -deffnm nvt
 ```
 
-Check temperature stability:
+### NPT equilibration
 
-gmx energy -f nvt.edr -o temperature.xvg
-
-### 3.3 NPT Equilibration (constant N, P, T)
-
-Next, equilibrate both pressure and temperature to reach the correct system density.
-
-```
-gmx grompp -f npt.mdp -c nvt.gro -p topol.top -o npt.tpr
-```
-Run NPT equilibration
-
-```
+```bash
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -p topol.top -o npt.tpr
 gmx mdrun -deffnm npt
 ```
 
-Check pressure and density:
+### Production MD
 
+```bash
+gmx grompp -f production.mdp -c npt.gro -t npt.cpt -p topol.top -o production.tpr
+gmx mdrun -deffnm production
 ```
-gmx energy -f npt.edr -o pressure.xvg
+
+## 4. Submit Through Slurm
+
+Edit the two placeholder lines in `run_water.slurm` using the course values
+announced by the instructor:
+
+```text
+#SBATCH --account=COURSE_ACCOUNT
+#SBATCH --partition=COURSE_PARTITION
+```
+
+Also replace `GROMACS_MODULE_NAME`, then submit:
+
+```bash
+sbatch run_water.slurm
+squeue -u "$USER"
+```
+
+## 5. Inspect the Results
+
+```bash
+gmx energy -f em.edr -o potential.xvg
+gmx energy -f nvt.edr -o temperature.xvg
 gmx energy -f npt.edr -o density.xvg
+gmx energy -f production.edr -o total_energy.xvg
 ```
 
-### 3.4 Production Run
+Select the requested quantity when prompted. Before proceeding between stages,
+read the end of each `.log` file and check that the calculation completed.
 
-After equilibration, you are ready to run **production MD**. This stage is where you generate the actual trajectories (`.xtc` or `.trr`) for your scientific analysis.  
+## Short Check-In
 
-The setup is very similar to the equilibration runs, but with one key difference:  
-- **Do not re-generate velocities**. The production simulation must continue smoothly from the equilibrated system state, so you should disable velocity generation in the `*.mdp` file (set `gen_vel = no`).
+Be prepared to show:
 
+1. the submitted job and its final status;
+2. one energy or thermodynamic plot;
+3. the average density from the NPT stage; and
+4. two or three sentences explaining whether the system appears ready for a
+   production simulation.
 
-### Notes
+## Optional: Rebuild the Starting Box
 
-The .mdp files (minim.mdp, nvt.mdp, npt.mdp, npt2.mdp) are templates you can adjust. For example, you can change the thermostat (e.g., Berendsen, V-rescale) or barostat (e.g., Parrinello–Rahman). For more details please refer to https://manual.gromacs.org/current/user-guide/mdp-options.html
+Packmol is optional. If it is available, `test.inp` creates the provided box:
 
-Always inspect your log files and energy output before moving to the next step.
+```bash
+packmol < test.inp
+```
 
-Visualization with VMD, PyMOL, or gmx view is highly recommended to confirm system stability.
+The bundled `packmol` executable is platform-specific and is not required.
+
