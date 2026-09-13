@@ -8,6 +8,12 @@ ssh YOUR_KU_ID@CLUSTER_HOSTNAME
 
 Replace `YOUR_KU_ID` and `CLUSTER_HOSTNAME` with your own information.
 
+example:
+
+```bash
+ssh apple@hpc.crc.ku.edu
+```
+
 ## Create a Personal Course Directory
 
 After logging in:
